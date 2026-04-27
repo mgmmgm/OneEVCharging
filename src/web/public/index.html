@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OneEV Charging Monitor</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --available: #22c55e;
+      --charging: #eab308;
+      --paused: #f97316;
+      --accent: #3b82f6;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    header .title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    header .title-group .icon {
+      font-size: 2rem;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header .subtitle {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 0.15rem;
+    }
+
+    .meta {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    #refresh-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    #refresh-btn:hover {
+      background: #2563eb;
+    }
+
+    #refresh-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ── Summary bar ─────────────────────────────────────────── */
+    .summary-bar {
+      display: flex;
+      gap: 1rem;
+      padding: 1.25rem 2rem;
+      flex-wrap: wrap;
+    }
+
+    .summary-card {
+      flex: 1 1 140px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      text-align: center;
+    }
+
+    .summary-card .count {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .summary-card .label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .summary-card.available .count {
+      color: var(--available);
+    }
+
+    .summary-card.charging .count {
+      color: var(--charging);
+    }
+
+    .summary-card.paused .count {
+      color: var(--paused);
+    }
+
+    .summary-card.total .count {
+      color: var(--accent);
+    }
+
+    /* ── Grid ────────────────────────────────────────────────── */
+    .station-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+      padding: 0 2rem 2rem;
+    }
+
+    .station-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.15rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .station-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .station-card .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .station-card .name {
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .station-card .power {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .station-card .done-since {
+      font-size: 0.8rem;
+      color: var(--paused);
+      font-weight: 600;
+    }
+
+    /* Charging info: stacked lines with label + value */
+    .charging-metrics {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .metric-line {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+    }
+
+    .metric-line .metric-label {
+      color: var(--muted);
+      min-width: 90px;
+    }
+
+    .metric-line .metric-value {
+      font-weight: 700;
+    }
+
+    .metric-line.energy .metric-value {
+      color: #38bdf8;
+    }
+
+    .metric-line.duration .metric-value {
+      color: var(--charging);
+    }
+
+    .metric-line.speed .metric-value {
+      color: #34d399;
+    }
+
+    /* Status badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .badge.AVAILABLE {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--available);
+    }
+
+    .badge.CHARGING {
+      background: rgba(234, 179, 8, 0.15);
+      color: var(--charging);
+    }
+
+    .badge.PAUSED {
+      background: rgba(249, 115, 22, 0.15);
+      color: var(--paused);
+    }
+
+    .badge.UNKNOWN {
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+    }
+
+    .badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Only pulse the dot for CHARGING (in-progress indicator) */
+    .badge.CHARGING .dot {
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    /* ── Loading & error ─────────────────────────────────────── */
+    .loading-overlay {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 4rem 2rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-msg {
+      text-align: center;
+      padding: 2rem;
+      color: #ef4444;
+      font-size: 0.9rem;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.75rem;
+      color: #475569;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="title-group">
+      <span class="icon">&#x1F50C;</span>
+      <div>
+        <h1>OneEV Charging Monitor</h1>
+        <div class="subtitle">Micro Focus Interactive – Real-time station status</div>
+      </div>
+    </div>
+    <div class="meta">
+      <span id="last-update">&#x1F552; Loading...</span>
+      <button id="refresh-btn" onclick="fetchData(true)">&#x21BB; Refresh</button>
+    </div>
+  </header>
+
+  <section class="summary-bar" id="summary-bar"></section>
+
+  <section class="station-grid" id="station-grid">
+    <div class="loading-overlay"><div class="spinner"></div></div>
+  </section>
+
+  <footer>OneEV Charging Monitor &bull; Data sourced from AFCon EV</footer>
+
+  <script>
+    const STATUS_ORDER = { AVAILABLE: 0, CHARGING: 1, PAUSED: 2, UNKNOWN: 3 };
+    const STATUS_LABEL = { AVAILABLE: "Available", CHARGING: "Charging", PAUSED: "Done Charging", UNKNOWN: "Unknown" };
+
+    // Extract the station number from the Hebrew caption
+    function getStationNumber(caption) {
+      const match = caption.match(/\d+/);
+      return match ? parseInt(match[0], 10) : 0;
+    }
+
+    // Get max power across all sockets
+    function getMaxPower(station) {
+      if (!station.stationSockets || station.stationSockets.length === 0) return 0;
+      return station.stationSockets.reduce((max, s) => Math.max(max, s.maximumPower || 0), 0);
+    }
+
+    async function fetchData(forceRefresh) {
+      const btn = document.getElementById("refresh-btn");
+      btn.disabled = true;
+      btn.textContent = "Refreshing...";
+
+      try {
+        let res;
+        if (forceRefresh) {
+          res = await fetch("/api/stations/refresh", { method: "POST" });
+        } else {
+          res = await fetch("/api/stations");
+        }
+        const json = await res.json();
+        render(json.stations, json.lastFetchTime);
+      } catch (err) {
+        document.getElementById("station-grid").innerHTML =
+          `<div class="error-msg">Failed to load station data. Retrying...</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "\u21BB Refresh";
+      }
+    }
+
+    function render(stations, lastFetchTime) {
+      // Sort by station number
+      stations.sort((a, b) => getStationNumber(a.caption) - getStationNumber(b.caption));
+
+      const available = stations.filter(s => s.stationStatusId === "AVAILABLE").length;
+      const charging = stations.filter(s => s.stationStatusId === "CHARGING").length;
+      const paused = stations.filter(s => s.stationStatusId === "PAUSED").length;
+      const unknown = stations.filter(s => !["AVAILABLE","CHARGING","PAUSED"].includes(s.stationStatusId)).length;
+
+      // Summary
+      document.getElementById("summary-bar").innerHTML = `
+        <div class="summary-card total"><div class="count">${stations.length}</div><div class="label">Total</div></div>
+        <div class="summary-card available"><div class="count">${available}</div><div class="label">Available</div></div>
+        <div class="summary-card charging"><div class="count">${charging}</div><div class="label">Charging</div></div>
+        <div class="summary-card paused"><div class="count">${paused}</div><div class="label">Done Charging</div></div>
+        ${unknown > 0 ? `<div class="summary-card" style="--accent:#a78bfa"><div class="count" style="color:#a78bfa">${unknown}</div><div class="label">Unknown</div></div>` : ""}
+      `;
+
+      // Cards – name, status badge, max power, charging info, done-since time
+      const grid = document.getElementById("station-grid");
+      grid.innerHTML = stations.map(s => {
+        const num = getStationNumber(s.caption);
+        const displayName = num ? `Station ${num}` : escHtml(s.caption);
+        const maxPower = getMaxPower(s);
+
+        // Show "Done since HH:MM" for stations that finished charging
+        let extraInfo = "";
+        if (s.stationStatusId === "PAUSED" && s.pausedAt) {
+          const d = new Date(s.pausedAt);
+          const time = d.toLocaleTimeString("en-IL", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit" });
+          extraInfo = `<div class="done-since">Done since ${time}</div>`;
+        }
+
+        // Show charging metrics as stacked lines (energy, duration, speed)
+        if (s.chargingInfo) {
+          const ci = s.chargingInfo;
+          let lines = "";
+          if (ci.totalKw != null) {
+            lines += `<div class="metric-line energy"><span class="metric-label">Total KW</span><span class="metric-value">${ci.totalKw}</span></div>`;
+          }
+          if (ci.durationFormatted) {
+            lines += `<div class="metric-line duration"><span class="metric-label">Duration</span><span class="metric-value">${ci.durationFormatted}</span></div>`;
+          }
+          if (ci.rateEstimation != null) {
+            lines += `<div class="metric-line speed"><span class="metric-label">Charging Speed</span><span class="metric-value">${ci.rateEstimation.toFixed(2)} kW</span></div>`;
+          }
+          if (lines) {
+            extraInfo += `<div class="charging-metrics">${lines}</div>`;
+          }
+        }
+
+        return `
+          <div class="station-card">
+            <div class="card-header">
+              <div class="name">${displayName}</div>
+              <span class="badge ${s.stationStatusId}">
+                <span class="dot"></span>
+                ${STATUS_LABEL[s.stationStatusId] || s.stationStatusId}
+              </span>
+            </div>
+            <div class="power">${maxPower} kW max power</div>
+            ${extraInfo}
+          </div>
+        `;
+      }).join("");
+
+      // Updated time
+      if (lastFetchTime) {
+        const d = new Date(lastFetchTime);
+        document.getElementById("last-update").textContent =
+          `\u{1F552} Updated: ${d.toLocaleString("en-IL", { timeZone: "Asia/Jerusalem" })}`;
+      }
+    }
+
+    function escHtml(str) {
+      const d = document.createElement("div");
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // Initial load & auto-refresh every 5 minutes (matches server polling interval)
+    fetchData();
+    setInterval(fetchData, 300000);
+  </script>
+</body>
+
+</html>
