@@ -20,6 +20,8 @@ function buildStationResponse() {
 
 function startWebServer() {
   const app = express();
+  const port = config.PORT;
+  const host = config.HOST;
 
   // Serve the dashboard UI
   app.use(express.static(path.join(__dirname, "public")));
@@ -41,8 +43,9 @@ function startWebServer() {
     }
   });
 
-  app.listen(config.PORT, () => {
-    logger.info(`Web dashboard running at http://localhost:${config.PORT}`);
+  app.listen(port, host, () => {
+    logger.info(`Web dashboard running on ${host}:${port}`);
+    logger.info("If running on Railway, open your generated railway.app domain to access the UI");
   });
 
   return app;

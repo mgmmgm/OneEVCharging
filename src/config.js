@@ -1,5 +1,8 @@
 require("dotenv").config();
 
+const parsedPort = Number.parseInt(process.env.PORT, 10);
+const parsedPollInterval = Number.parseInt(process.env.POLL_INTERVAL_MS, 10);
+
 module.exports = {
   // AFCon EV API
   API_BASE_URL: process.env.API_BASE_URL || "https://account.afconev.co.il",
@@ -13,11 +16,12 @@ module.exports = {
   AFCONEV_PASSWORD: process.env.AFCONEV_PASSWORD,
 
   // Polling interval: 5 minutes
-  POLL_INTERVAL_MS: parseInt(process.env.POLL_INTERVAL_MS, 10) || 300000,
+  POLL_INTERVAL_MS: Number.isFinite(parsedPollInterval) ? parsedPollInterval : 300000,
 
   // Telegram
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
 
   // Web server
-  PORT: parseInt(process.env.PORT, 10) || 3000,
+  PORT: Number.isFinite(parsedPort) ? parsedPort : 80,
+  HOST: process.env.HOST || "0.0.0.0",
 };
