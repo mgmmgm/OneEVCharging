@@ -6,10 +6,22 @@ const logger = require("../logger");
 
 // Attach pausedAt timestamp and charging info to each station in the response
 function buildStationResponse() {
+  const customerMap = config.CUSTOMER_DETAILS_MAP || {};
   const stations = stationMonitor.getAllStations().map((s) => ({
     ...s,
     pausedAt: stationMonitor.getPausedAtTime(s.id),
-    chargingInfo: stationMonitor.getChargingInfo(s.id),
+    chargingInfo: (() => {
+      const info = stationMonitor.getChargingInfo(s.id);
+      if (!info) return null;
+
+      const customerId = info.customerDetailId != null ? String(info.customerDetailId) : null;
+      const customerName = customerId ? customerMap[customerId] : null;
+      const { customerDetailId, ...rest } = info;
+      return {
+        ...rest,
+        ...(customerName ? { customerName } : {}),
+      };
+    })(),
   }));
   return {
     stations,

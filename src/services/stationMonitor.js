@@ -13,7 +13,7 @@ class StationMonitor extends EventEmitter {
     this.previousStatuses = new Map();
     // Track when each station transitioned to PAUSED (done charging)
     this.pausedAtTimes = new Map();
-    // Charging info per station: { totalKw, duration, durationFormatted }
+    // Charging info per station: { totalKw, duration, durationFormatted, customerDetailId }
     this.chargingInfo = new Map();
     this.lastFetchTime = null;
     this.polling = false;

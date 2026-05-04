@@ -3,6 +3,28 @@ require("dotenv").config();
 const parsedPort = Number.parseInt(process.env.PORT, 10);
 const parsedPollInterval = Number.parseInt(process.env.POLL_INTERVAL_MS, 10);
 
+function parseCustomerDetailsMap(raw) {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+
+    const normalized = {};
+    for (const [customerId, name] of Object.entries(parsed)) {
+      const id = String(customerId).trim();
+      const displayName = String(name || "").trim();
+      if (id && displayName) {
+        normalized[id] = displayName;
+      }
+    }
+    return normalized;
+  } catch {
+    return {};
+  }
+}
+
 module.exports = {
   // AFCon EV API
   API_BASE_URL: process.env.API_BASE_URL || "https://account.afconev.co.il",
@@ -24,4 +46,8 @@ module.exports = {
   // Web server
   PORT: Number.isFinite(parsedPort) ? parsedPort : 80,
   HOST: process.env.HOST || "0.0.0.0",
+
+  // Customer names by AFCon customerDetailId (JSON object string in .env)
+  // Example: {"47532":"David Milstein","248351":"Moshe Golan"}
+  CUSTOMER_DETAILS_MAP: parseCustomerDetailsMap(process.env.CUSTOMER_DETAILS_MAP_JSON),
 };

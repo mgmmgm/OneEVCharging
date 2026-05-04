@@ -90,7 +90,7 @@ function formatDuration(msOrSeconds) {
 
 /**
  * Fetch charging estimation data for a single socket.
- * Returns { totalKw, duration, durationFormatted } or null if unavailable.
+ * Returns { totalKw, duration, durationFormatted, customerDetailId } or null if unavailable.
  */
 async function getSocketInfo(socketId) {
   try {
@@ -131,12 +131,13 @@ async function getSocketInfo(socketId) {
       return null;
     }
 
-    const { totalKw, duration, rateEstimation } = payload.data || {};
+    const { totalKw, duration, rateEstimation, customerDetailId } = payload.data || {};
     return {
       totalKw: totalKw ?? null,
       duration: duration ?? null,
       durationFormatted: typeof duration === "number" ? formatDuration(duration) : null,
       rateEstimation: rateEstimation ?? null,
+      customerDetailId: customerDetailId ?? null,
     };
   } catch (error) {
     logger.error(`Failed to get socket info for ${socketId}: ${error.message}`);
@@ -146,7 +147,7 @@ async function getSocketInfo(socketId) {
 
 /**
  * Fetch charging info for all sockets.
- * Returns a Map of stationId -> { totalKw, duration, durationFormatted }.
+ * Returns a Map of stationId -> { totalKw, duration, durationFormatted, customerDetailId }.
  */
 async function getAllSocketInfo() {
   const ok = await ensureLoggedIn();
