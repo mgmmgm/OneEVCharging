@@ -436,7 +436,7 @@
             lines += `<div class="metric-line speed"><span class="metric-label">Charging Speed</span><span class="metric-value">${ci.rateEstimation.toFixed(2)} kW</span></div>`;
           }
           if (ci.customerName) {
-            lines += `<div class="metric-line customer"><span class="metric-label">Customer</span><span class="metric-value">${escHtml(String(ci.customerName))}</span></div>`;
+            lines += `<div class="metric-line customer"><span class="metric-label">Employee</span><span class="metric-value">${escHtml(String(ci.customerName))}</span></div>`;
           }
           if (lines) {
             extraInfo += `<div class="charging-metrics">${lines}</div>`;
