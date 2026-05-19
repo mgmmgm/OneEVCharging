@@ -76,12 +76,17 @@ async function ensureLoggedIn() {
 }
 
 /**
- * Format milliseconds or seconds into HH:MM:SS string.
+ * Format duration into HH:MM:SS.
+ * AFCon charging duration is returned in milliseconds.
  */
-function formatDuration(msOrSeconds) {
-  const totalSeconds = msOrSeconds > 1e6
-    ? Math.floor(msOrSeconds / 1000)
-    : Math.floor(msOrSeconds);
+function formatDuration(rawDuration) {
+  const numericDuration = Number(rawDuration);
+  if (!Number.isFinite(numericDuration) || numericDuration < 0) {
+    return null;
+  }
+
+  const totalSeconds = Math.floor(numericDuration / 1000);
+
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
@@ -135,7 +140,7 @@ async function getSocketInfo(socketId) {
     return {
       totalKw: totalKw ?? null,
       duration: duration ?? null,
-      durationFormatted: typeof duration === "number" ? formatDuration(duration) : null,
+      durationFormatted: formatDuration(duration),
       rateEstimation: rateEstimation ?? null,
       customerDetailId: customerDetailId ?? null,
     };
